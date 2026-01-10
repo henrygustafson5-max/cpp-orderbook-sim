@@ -1,8 +1,32 @@
 [
 {
   "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
-  "command": "/usr/bin/clang++ -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/cpp_orderbook_sim.dir/src/main.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
+  "command": "/usr/bin/clang++ -I/Users/henrygustafson/dev/cpp-orderbook-sim/include -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/orderbook_sim.dir/src/main.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
   "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
-  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/cpp_orderbook_sim.dir/src/main.cpp.o"
+  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/orderbook_sim.dir/src/main.cpp.o"
+},
+{
+  "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
+  "command": "/usr/bin/clang++ -I/Users/henrygustafson/dev/cpp-orderbook-sim/include -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/matching_engine.cpp",
+  "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/matching_engine.cpp",
+  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o"
+},
+{
+  "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
+  "command": "/usr/bin/clang++ -I/Users/henrygustafson/dev/cpp-orderbook-sim/include -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/order_book.cpp",
+  "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/order_book.cpp",
+  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o"
+},
+{
+  "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
+  "command": "/usr/bin/clang++ -I/Users/henrygustafson/dev/cpp-orderbook-sim/include -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/orderbook_sim.dir/src/order.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/order.cpp",
+  "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/order.cpp",
+  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/orderbook_sim.dir/src/order.cpp.o"
+},
+{
+  "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
+  "command": "/usr/bin/clang++ -I/Users/henrygustafson/dev/cpp-orderbook-sim/include -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/orderbook_sim.dir/src/trade.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/trade.cpp",
+  "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/trade.cpp",
+  "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/orderbook_sim.dir/src/trade.cpp.o"
 }
 ]
