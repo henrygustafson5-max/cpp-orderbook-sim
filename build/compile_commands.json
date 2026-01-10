@@ -1,7 +1,7 @@
 [
 {
   "directory": "/Users/henrygustafson/dev/cpp-orderbook-sim/build",
-  "command": "/usr/bin/clang++ -g -std=gnu++20 -arch arm64 -o CMakeFiles/cpp_orderbook_sim.dir/src/main.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
+  "command": "/usr/bin/clang++ -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -o CMakeFiles/cpp_orderbook_sim.dir/src/main.cpp.o -c /Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
   "file": "/Users/henrygustafson/dev/cpp-orderbook-sim/src/main.cpp",
   "output": "/Users/henrygustafson/dev/cpp-orderbook-sim/build/CMakeFiles/cpp_orderbook_sim.dir/src/main.cpp.o"
 }
