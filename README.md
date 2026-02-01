@@ -1,97 +1,145 @@
-This project is a single-symbol limit order book and matching engine prototype written in modern C++ (C++20).
-It supports market and limit orders with correct price–time priority, partial fills, and trade generation.
-The primary goal of this stage is correctness, clarity, and invariant-driven design, not performance optimization or production readiness.
-This is an educational and exploratory implementation intended to model how real matching engines behave internally and to serve as a foundation for future extensions.
-Features (Current)
-Order Types
-Market Buy
-Market Sell
-Limit Buy (fill-and-rest)
-Limit Sell (fill-and-rest)
-Matching Behavior
-Best ask = lowest ask price
-Best bid = highest bid price
-FIFO (price–time priority) enforced within each price level
-Partial and full fills supported
-A single order may generate multiple trades
-Unfilled limit quantity is rested on the book
-Order Book
-Separate bid and ask books
-Price levels stored in ordered containers
+C++ Order Book & Matching Engine
+Overview
+This project implements a single-threaded limit order book and matching engine in modern C++, inspired by real-world electronic trading systems.
+The goal of this project is not to simulate an exchange UI, but to demonstrate correctness, performance-aware design, and clear ownership semantics in a non-trivial stateful system.
+The engine supports:
+Price–time priority matching
+Market and limit orders
+Partial fills across multiple price levels
+Deterministic trade generation
+High-Level Architecture
++-------------------+
+|  MatchingEngine   |
+|-------------------|
+| - Owns OrderBook  |
+| - Owns TradeLog   |
+| - Matching logic  |
++---------+---------+
+          |
+          v
++-------------------+
+|    OrderBook      |
+|-------------------|
+| - Bid side        |
+| - Ask side        |
+| - FIFO queues     |
+| - No trade logic  |
++---------+---------+
+          |
+          v
++-------------------+
+|   LimitOrder      |
+|-------------------|
+| - Price           |
+| - Quantity        |
+| - Order ID        |
+| - Timestamp       |
++-------------------+
+
+ Benchmarks
+All benchmarks were run on a single-threaded build using std::chrono::steady_clock on an Apple M-series MacBook Pro. Results represent wall-clock time and include all order book logic (price lookup, FIFO queue operations, and matching).
+Limit Order Inserts
+Orders	Total Time (ms)	Avg per Insert (ns)
+1,000	0.673	673
+100,000	39.6	396
+Larger runs benefit from cache warming and amortized allocation overhead.
+Market Order Sweep
+A market buy order was submitted against a pre-populated ask book.
+Price Levels	Total Time (ms)	Avg per Level (ns)
+10,000	4.99	499
+Mixed Workload
+Workload consisted of 2/3 limit orders and 1/3 market orders, simulating a realistic trading pattern.
+Operations	Total Time (ms)	Avg per Operation (ns)
+200,000	45.8	229
+Notes
+Benchmarks are intended to validate algorithmic behavior and data structure choices, not to compete with production-grade trading systems.
+Performance reflects:
+Price-time priority enforcement
 FIFO queues at each price level
-Empty price levels automatically removed
-Atomic consume operations return execution details
-Trades
-One trade generated per execution
-Trade fields include:
-Price
-Quantity
+Dynamic order matching
+Results are deterministic and reproducible.
+
+Trade execution events are recorded in a TradeLog owned by the MatchingEngine.
+Design Principles
+Separation of concerns:
+The OrderBook manages state only. All matching decisions live in MatchingEngine.
+Explicit ownership:
+Orders are owned by the book using std::unique_ptr.
+No hidden copies:
+Orders are never copied, only moved or mutated in place.
+Deterministic behavior:
+Matching follows strict price–time priority.
+Data Structures
+Order Storage
+std::map<Price, std::deque<std::unique_ptr<LimitOrder>>>
+std::map
+Maintains sorted price levels.
+Bids: highest price first (std::greater)
+Asks: lowest price first (std::less)
+std::deque
+Preserves FIFO order at each price level.
+std::unique_ptr<LimitOrder>
+Makes ownership explicit and prevents accidental copies.
+This structure closely mirrors how real matching engines model price levels.
+Matching Rules
+Market Orders
+Consume liquidity from the opposite side of the book
+Fill across multiple price levels if necessary
+Stop when:
+Quantity is fully filled, or
+The book is empty
+Limit Orders
+Attempt immediate execution if the order crosses the spread
+Match against the best available price levels
+Any unfilled quantity is rested on the book
+Matching respects price priority first, then FIFO time priority
+Partial Fills
+Supported for both market and limit orders
+Resting orders are reduced in place
+Orders are removed only when quantity reaches zero
+Trade Representation
+Each execution generates a Trade record containing:
+Trade ID
+Execution price
+Executed quantity
 Aggressor order ID
 Resting order ID
 Aggressor side
 Timestamp
-Trades recorded in an in-memory trade log
-Design Decisions
-Correctness over cleverness
-Matching logic is written explicitly with clear control flow and guard conditions so that invariants are easy to reason about and verify.
-Separation of responsibilities
-OrderBook manages price levels and resting liquidity
-MatchingEngine handles matching logic and trade generation
-Trade recording is isolated in a TradeLog
-Execution details are passed explicitly via an ExecutionReport
-Single-threaded, single-symbol
-The engine focuses purely on matching logic.
-Concurrency, locking, and multi-symbol routing are intentionally out of scope.
-Explicit ownership and lifetimes
-Resting orders are owned by the order book via std::unique_ptr
-Execution data is copied out safely before orders are erased
-No shared ownership or hidden lifetimes
-Multi-file, modular structure
-The codebase is split into headers and source files with a clean include/ and src/ layout, enforcing clear interfaces and compilation boundaries.
-Project Structure
-include/
-├── order.hpp
-├── order_book.hpp
-├── matching_engine.hpp
-└── trade.hpp
+Trades are appended to a TradeLog owned by the matching engine.
+Complexity Analysis
+Operation	Time Complexity
+Limit order insert	O(log N)
+Best bid / ask lookup	O(1)
+Single fill execution	O(1)
+Multi-level market fill	O(K) (levels consumed)
+Where N is the number of price levels and K is the number of levels crossed.
+Example Usage
+MatchingEngine engine;
 
-src/
-├── main.cpp
-├── order.cpp
-├── order_book.cpp
-├── matching_engine.cpp
-└── trade.cpp
-The project is built using CMake with strict compiler warnings enabled.
-Out of Scope (Intentional)
-This prototype does not currently support:
-Order cancellation or modification
-Self-trade prevention
-Input validation (e.g., zero or negative quantities)
-Concurrency or locking
-Persistence or recovery
-Networking, APIs, or FIX integration
-Multi-symbol support
-Performance optimizations
-These features are intentionally deferred to keep the current focus on correctness and design clarity.
-Usage
-At this stage, the engine is intended to be driven by:
-A simple test harness
-Manual calls from main()
-Typical usage:
-Create a MatchingEngine instance
-Submit limit orders to populate the book
-Submit market or limit orders
-Observe generated trades and remaining book state
-A formal test suite will be added in a future iteration.
-Current Focus
-Verifying matching correctness
-Maintaining order book invariants
-Ensuring safe ownership and lifetime semantics
-Preparing the codebase for extensibility
-Planned Next Steps
-Add order cancellation and modification by OrderID
-Introduce an order index for efficient lookup
-Refactor matching logic to reduce duplication
-Add unit tests for matching behavior and invariants
-Improve invariant documentation and assertions
-Explore alternative data structures for performance
+engine.submitLimitOrder(OrderSide::Ask, 100, OrderIDGenerator::next(), 101);
+engine.submitLimitOrder(OrderSide::Bid, 150, OrderIDGenerator::next(), 102);
+
+engine.submitMarketOrder(OrderSide::Bid, 200, OrderIDGenerator::next());
+
+engine.printTrade(0);
+Design Tradeoffs & Limitations
+Single-threaded by design
+No order cancellation or modification
+No persistence layer
+No concurrency or locking
+Intended as a core matching engine, not a full exchange simulator
+These choices were made intentionally to focus on correctness, clarity, and system design.
+Future Work
+Planned improvements:
+Deterministic event replay
+Benchmarking and latency measurement
+Unit tests for edge cases
+Optional concurrency extensions
+Why This Project
+This project was built to demonstrate:
+Strong C++ ownership and lifetime management
+Non-trivial data structure design
+Correct handling of partial state transitions
+Performance-aware system design
+It is intentionally minimal in scope but realistic in behavior.

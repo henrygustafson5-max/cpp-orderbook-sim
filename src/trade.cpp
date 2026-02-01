@@ -35,4 +35,3 @@ using TradeID = std::uint64_t;
         return tradelog.size(); 
     }
     
-TradeID Trade::nextTradeID = 0;

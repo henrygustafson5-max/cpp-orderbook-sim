@@ -10,6 +10,7 @@ add_executable(orderbook_sim
     src/order_book.cpp
     src/order.cpp
     src/trade.cpp
+    src/benchmark.cpp
 )
 
 target_include_directories(orderbook_sim

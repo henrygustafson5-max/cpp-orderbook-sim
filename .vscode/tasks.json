@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build & Run (Toy C++)",
+      "type": "shell",
+      "command": "clang++ -std=c++20 src/main.cpp -o app && ./app",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

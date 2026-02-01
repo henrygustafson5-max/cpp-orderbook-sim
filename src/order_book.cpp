@@ -1,5 +1,7 @@
 #include "order_book.hpp"
+#include "order.hpp"
 #include <cassert>
+#include <optional>
 
 
     
@@ -26,6 +28,8 @@
         return !m_BidSide.empty();
     }
 
+  
+
     std::optional<Price> OrderBook::bestBid() const 
     {
         if (m_BidSide.empty()) return std::nullopt; 
@@ -48,7 +52,7 @@
         if (orderQueue.empty()) return std::nullopt;
         LimitOrder& restingOrder = *orderQueue.front(); 
         Quantity executed = std::min(quantity, restingOrder.getQuantity());
-        assert(executed>0);
+        if(executed == 0) return std::nullopt;
         restingOrder.updateQuantity(executed);
         OrderID rID{restingOrder.getOrderID()};
         Price rPrice{restingOrder.getPrice()};
@@ -71,7 +75,7 @@
         if (orderQueue.empty()) return std::nullopt;
         LimitOrder& restingOrder = *orderQueue.front();
         Quantity executed = std::min(quantity, restingOrder.getQuantity());
-        assert(executed>0);
+        if (executed == 0) return std::nullopt;
         restingOrder.updateQuantity(executed);
         OrderID rID{restingOrder.getOrderID()};
         Price rPrice{restingOrder.getPrice()};

@@ -94,6 +94,15 @@ build CMakeFiles/orderbook_sim.dir/src/trade.cpp.o: CXX_COMPILER__orderbook_sim_
   OBJECT_FILE_DIR = CMakeFiles/orderbook_sim.dir/src
   TARGET_SUPPORT_DIR = CMakeFiles/orderbook_sim.dir
 
+build CMakeFiles/orderbook_sim.dir/src/benchmark.cpp.o: CXX_COMPILER__orderbook_sim_unscanned_Debug /Users/henrygustafson/dev/cpp-orderbook-sim/src/benchmark.cpp || cmake_object_order_depends_target_orderbook_sim
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles/orderbook_sim.dir/src/benchmark.cpp.o.d
+  FLAGS = -g -std=gnu++20 -arch arm64 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion
+  INCLUDES = -I/Users/henrygustafson/dev/cpp-orderbook-sim/include
+  OBJECT_DIR = CMakeFiles/orderbook_sim.dir
+  OBJECT_FILE_DIR = CMakeFiles/orderbook_sim.dir/src
+  TARGET_SUPPORT_DIR = CMakeFiles/orderbook_sim.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target orderbook_sim
@@ -102,7 +111,7 @@ build CMakeFiles/orderbook_sim.dir/src/trade.cpp.o: CXX_COMPILER__orderbook_sim_
 #############################################
 # Link the executable orderbook_sim
 
-build orderbook_sim: CXX_EXECUTABLE_LINKER__orderbook_sim_Debug CMakeFiles/orderbook_sim.dir/src/main.cpp.o CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o CMakeFiles/orderbook_sim.dir/src/order.cpp.o CMakeFiles/orderbook_sim.dir/src/trade.cpp.o
+build orderbook_sim: CXX_EXECUTABLE_LINKER__orderbook_sim_Debug CMakeFiles/orderbook_sim.dir/src/main.cpp.o CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o CMakeFiles/orderbook_sim.dir/src/order.cpp.o CMakeFiles/orderbook_sim.dir/src/trade.cpp.o CMakeFiles/orderbook_sim.dir/src/benchmark.cpp.o
   CONFIG = Debug
   FLAGS = -g -arch arm64
   LINK_FLAGS = -Wl,-search_paths_first -Wl,-headerpad_max_install_names

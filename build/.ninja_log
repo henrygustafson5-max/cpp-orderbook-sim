@@ -1,7 +1,13 @@
 # ninja log v7
-1	625	1768079521212238223	CMakeFiles/orderbook_sim.dir/src/order.cpp.o	74190b23ac67d8b5
-0	629	1768079521211910179	CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o	b440a09687e4c9c4
-1	632	1768079521212663919	CMakeFiles/orderbook_sim.dir/src/trade.cpp.o	a54fd23283bf9743
-0	636	1768079521211547375	CMakeFiles/orderbook_sim.dir/src/main.cpp.o	d690684433c8b1e8
-0	677	1768079521212080849	CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o	983840fc10bddf86
-677	786	1768079521888701339	orderbook_sim	4637a164d9204518
+4	576	1769903564911610062	CMakeFiles/orderbook_sim.dir/src/order.cpp.o	74190b23ac67d8b5
+4	585	1769903564911361603	CMakeFiles/orderbook_sim.dir/src/matching_engine.cpp.o	b440a09687e4c9c4
+4	582	1769903564911727813	CMakeFiles/orderbook_sim.dir/src/trade.cpp.o	a54fd23283bf9743
+4	289	1769903732103057324	CMakeFiles/orderbook_sim.dir/src/main.cpp.o	d690684433c8b1e8
+4	638	1769903564911486312	CMakeFiles/orderbook_sim.dir/src/order_book.cpp.o	983840fc10bddf86
+728	844	1769776182475100869	orderbook_sim	4637a164d9204518
+19	438	1769903902987624647	CMakeFiles/orderbook_sim.dir/src/benchmark.cpp.o	fc02cf44256f74e0
+438	477	1769903903406524956	orderbook_sim	f33e3f7f6c337ffd
+5	296	1769904335714713377	CMakeFiles/orderbook_sim.dir/src/main.cpp.o	d690684433c8b1e8
+296	333	1769904336005765419	orderbook_sim	f33e3f7f6c337ffd
+6	344	1769904935841273228	CMakeFiles/orderbook_sim.dir/src/benchmark.cpp.o	fc02cf44256f74e0
+344	380	1769904936179704563	orderbook_sim	f33e3f7f6c337ffd

@@ -23,7 +23,7 @@
             if(!tradeopt) break; 
             ExecutionReport executedtrade = *tradeopt; 
             marketQty -= executedtrade.executedQTY;
-            Trade trade{executedtrade.restingPrice, executedtrade.executedQTY, marketID, executedtrade.restingID, marketSide};  
+            Trade trade{MatchingEngine::id++,executedtrade.restingPrice, executedtrade.executedQTY, marketID, executedtrade.restingID, marketSide};  
             tradelog.record(trade); 
         } 
         } 
@@ -35,7 +35,7 @@
                 if(!tradeopt) break; 
                 ExecutionReport executedtrade = *tradeopt; 
                 marketQty -= executedtrade.executedQTY;
-                Trade trade{executedtrade.restingPrice, executedtrade.executedQTY, marketID, executedtrade.restingID, marketSide};
+                Trade trade{MatchingEngine::id++, executedtrade.restingPrice, executedtrade.executedQTY, marketID, executedtrade.restingID, marketSide};
                 tradelog.record(trade);  
             }
         }
@@ -66,6 +66,7 @@
                 
                 limitOrder->updateQuantity(executedTrade.executedQTY);
                 Trade trade{
+                    MatchingEngine::id++,
                     executedTrade.restingPrice,
                     executedTrade.executedQTY,
                     limitOrder->getOrderID(),
@@ -101,6 +102,7 @@
                 
                 limitOrder->updateQuantity(executedTrade.executedQTY);
                 Trade trade{
+                    MatchingEngine::id++,
                     executedTrade.restingPrice,
                     executedTrade.executedQTY,
                     limitOrder->getOrderID(),

@@ -1,27 +1,24 @@
-#include "matching_engine.hpp"
-#include "order.hpp"
+#include <iostream>
 
 
-
+// Forward declarations
+void benchmarkLimitInsert(std::size_t numOrders);
+void benchmarkMarketFill(std::size_t depth);
+void benchmarkMixed(std::size_t ops);
 
 int main()
 {
-    MatchingEngine engine;
+    std::cout << "=== Matching Engine Benchmarks ===\n\n";
 
-    engine.submitLimitOrder(OrderSide::Ask, 100, OrderIDGenerator::next(), 101);
-    engine.submitLimitOrder(OrderSide::Ask, 100, OrderIDGenerator::next(), 102);
+    // Warm-up (optional but good practice)
+    benchmarkLimitInsert(static_cast<std::size_t>(1000));
 
-    engine.submitLimitOrder(OrderSide::Bid, 100, OrderIDGenerator::next(), 99);
-    engine.submitLimitOrder(OrderSide::Bid, 100, OrderIDGenerator::next(), 98);
+    // Core benchmarks
+    benchmarkLimitInsert(static_cast<std::size_t>(100000));
+    benchmarkMarketFill(static_cast<std::size_t>(10000));
+    benchmarkMixed(static_cast<std::size_t>(200000));
 
-    // --- Aggress ---
-    engine.submitMarketOrder(OrderSide::Bid, 150, OrderIDGenerator::next());
-    engine.submitMarketOrder(OrderSide::Ask, 50, OrderIDGenerator::next());
+    std::cout << "=== Benchmarks Complete ===\n";
 
-    for (std::size_t index {0} ; index< engine.getLogSize() ; index++ )
-    {
-        engine.printTrade(index);
-    }
     return 0;
-
 }

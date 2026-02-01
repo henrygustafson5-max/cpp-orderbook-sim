@@ -1,4 +1,5 @@
 #include "order.hpp"
+#include <atomic>
 #include <cstdint>
 #include <chrono>
 
@@ -12,8 +13,8 @@ using OrderID = int32_t;
 
     OrderID OrderIDGenerator::next()
     {
-        static OrderID id{1};
-        return id++;
+        static std::atomic<OrderID> id{1};
+        return id.fetch_add(1, std::memory_order_relaxed);
     }
 
 

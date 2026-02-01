@@ -5,7 +5,6 @@ using TradeID = std::uint64_t;
 
 struct Trade
 {
-    static TradeID nextTradeID; 
     TradeID m_TradeID{};
     Price m_Price{};
     Quantity m_Qty{};
@@ -14,17 +13,17 @@ struct Trade
     OrderSide m_AggressorSide{};
     Timestamp m_Time{};
 
-    Trade(Price price, Quantity quantity, OrderID aggressorOrderID, OrderID restingOrderID, OrderSide aggressorside)
-    : m_TradeID{nextTradeID++}
+    Trade(TradeID id, Price price, Quantity quantity, OrderID aggressorOrderID, OrderID restingOrderID, OrderSide aggressorside)
+    : m_TradeID{id}
     , m_Price{price}
     , m_Qty{quantity}
     , m_AggressorOrderID{aggressorOrderID}
     , m_RestingOrderID{restingOrderID}
     , m_AggressorSide{aggressorside}
     , m_Time{Clock::now()}
-    {}
-};
+    {};
 
+};
 class TradeLog 
 {
     private:
