@@ -1,148 +1,120 @@
+#include <algorithm>
 #include <chrono>
-#include "matching_engine.hpp"
 #include <iostream>
+#include <vector>
+#include "matching_engine.hpp"
 
 using Clock = std::chrono::steady_clock;
-
 using Nanoseconds = std::chrono::nanoseconds;
+
+static constexpr int RUNS = 5;
+
+static long long medianOf(std::vector<long long>& v)
+{
+    std::sort(v.begin(), v.end());
+    return v[v.size() / 2];
+}
 
 void benchmarkLimitInsert(std::size_t numOrders)
 {
-    MatchingEngine engine;
+    std::vector<long long> samples;
+    samples.reserve(RUNS);
 
-    auto start = Clock::now();
-
-    for (std::size_t i = 0; i < numOrders; ++i)
+    for (int run = 0; run < RUNS; ++run)
     {
-        Price price = 100 + (i % 50);
-        engine.submitLimitOrder(
-            OrderSide::Bid,
-            100,
-            OrderIDGenerator::next(),
-            price
-        );
+        MatchingEngine engine;
+        const auto start = Clock::now();
+        for (std::size_t i = 0; i < numOrders; ++i)
+        {
+            Price price = 100 + static_cast<Price>(i % 50);
+            engine.submitLimitOrder(OrderSide::Bid, 100, OrderIDGenerator::next(), price);
+        }
+        const auto end = Clock::now();
+        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
 
-    auto end = Clock::now();
-    const Nanoseconds elapsed = std::chrono::duration_cast<Nanoseconds>(end - start);
+    const long long minNs  = *std::min_element(samples.begin(), samples.end());
+    const long long medNs  = medianOf(samples);
 
-    const double total_ms =
-    static_cast<double>(elapsed.count()) / 1'000'000.0;
-
-    const double avg_ns =
-    static_cast<double>(elapsed.count()) /
-    static_cast<double>(numOrders);
-
-
-    std::cout << "Limit inserts: " << numOrders << "\n";
-    std::cout << "Total time (ms): " << total_ms << "\n";
-    std::cout << "Avg per insert (ns): " << avg_ns << "\n\n";
+    std::cout << "Limit inserts: " << numOrders << "  (runs=" << RUNS << ")\n";
+    std::cout << "  Min per insert (ns):    "
+              << static_cast<double>(minNs) / static_cast<double>(numOrders) << "\n";
+    std::cout << "  Median per insert (ns): "
+              << static_cast<double>(medNs) / static_cast<double>(numOrders) << "\n\n";
 }
 
 void benchmarkMarketFill(std::size_t depth)
 {
-    MatchingEngine engine;
+    std::vector<long long> samples;
+    samples.reserve(RUNS);
 
-    // Build ask side of the book
-    for (std::size_t i = 0; i < depth; ++i)
+    for (int run = 0; run < RUNS; ++run)
     {
-        const Price price =
-            static_cast<Price>(100 + static_cast<Price>(i));
+        MatchingEngine engine;
 
-        const Quantity qty =
-            static_cast<Quantity>(100);
+        for (std::size_t i = 0; i < depth; ++i)
+        {
+            const Price price    = static_cast<Price>(100 + static_cast<Price>(i));
+            const Quantity qty   = static_cast<Quantity>(100);
+            engine.submitLimitOrder(OrderSide::Ask, qty, OrderIDGenerator::next(), price);
+        }
 
-        engine.submitLimitOrder(
-            OrderSide::Ask,
-            qty,
-            OrderIDGenerator::next(),
-            price
-        );
+        const Quantity marketQty =
+            static_cast<Quantity>(depth) * static_cast<Quantity>(100);
+
+        const auto start = Clock::now();
+        engine.submitMarketOrder(OrderSide::Bid, marketQty, OrderIDGenerator::next());
+        const auto end = Clock::now();
+
+        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
 
-    const Quantity marketQty =
-        static_cast<Quantity>(depth) *
-        static_cast<Quantity>(100);
+    const long long minNs  = *std::min_element(samples.begin(), samples.end());
+    const long long medNs  = medianOf(samples);
 
-    const auto start = Clock::now();
-
-    engine.submitMarketOrder(
-        OrderSide::Bid,
-        marketQty,
-        OrderIDGenerator::next()
-    );
-
-    const auto end = Clock::now();
-
-    const auto elapsed =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-
-    const double total_ms =
-        static_cast<double>(elapsed.count()) / 1'000'000.0;
-
-    const double avg_ns_per_level =
-        static_cast<double>(elapsed.count()) /
-        static_cast<double>(depth);
-
-    std::cout << "Market fill depth: " << depth << "\n";
-    std::cout << "Total time (ms): " << total_ms << "\n";
-    std::cout << "Avg per price level (ns): " << avg_ns_per_level << "\n\n";
+    std::cout << "Market fill depth: " << depth << "  (runs=" << RUNS << ")\n";
+    std::cout << "  Min per price level (ns):    "
+              << static_cast<double>(minNs) / static_cast<double>(depth) << "\n";
+    std::cout << "  Median per price level (ns): "
+              << static_cast<double>(medNs) / static_cast<double>(depth) << "\n\n";
 }
-
 
 void benchmarkMixed(std::size_t ops)
 {
-    MatchingEngine engine;
+    std::vector<long long> samples;
+    samples.reserve(RUNS);
 
-    const auto start = Clock::now();
-
-    for (std::size_t i = 0; i < ops; ++i)
+    for (int run = 0; run < RUNS; ++run)
     {
-        const bool isMarket =
-            (i % static_cast<std::size_t>(3)) == static_cast<std::size_t>(0);
+        MatchingEngine engine;
+        const auto start = Clock::now();
 
-        if (isMarket)
+        for (std::size_t i = 0; i < ops; ++i)
         {
-            const Quantity marketQty =
-                static_cast<Quantity>(50);
-
-            engine.submitMarketOrder(
-                OrderSide::Bid,
-                marketQty,
-                OrderIDGenerator::next()
-            );
+            const bool isMarket = (i % static_cast<std::size_t>(3)) == static_cast<std::size_t>(0);
+            if (isMarket)
+            {
+                const Quantity marketQty = static_cast<Quantity>(50);
+                engine.submitMarketOrder(OrderSide::Bid, marketQty, OrderIDGenerator::next());
+            }
+            else
+            {
+                const Price price  = static_cast<Price>(100 + static_cast<Price>(i % 20));
+                const Quantity qty = static_cast<Quantity>(100);
+                engine.submitLimitOrder(OrderSide::Ask, qty, OrderIDGenerator::next(), price);
+            }
         }
-        else
-        {
-            const Price price =
-                static_cast<Price>(100 + static_cast<Price>(i % 20));
 
-            const Quantity qty =
-                static_cast<Quantity>(100);
-
-            engine.submitLimitOrder(
-                OrderSide::Ask,
-                qty,
-                OrderIDGenerator::next(),
-                price
-            );
-        }
+        const auto end = Clock::now();
+        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
 
-    const auto end = Clock::now();
+    const long long minNs  = *std::min_element(samples.begin(), samples.end());
+    const long long medNs  = medianOf(samples);
 
-    const auto elapsed =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-
-    const double total_ms =
-        static_cast<double>(elapsed.count()) / 1'000'000.0;
-
-    const double avg_ns_per_op =
-        static_cast<double>(elapsed.count()) /
-        static_cast<double>(ops);
-
-    std::cout << "Mixed workload ops: " << ops << "\n";
-    std::cout << "Total time (ms): " << total_ms << "\n";
-    std::cout << "Avg per operation (ns): " << avg_ns_per_op << "\n\n";
+    std::cout << "Mixed workload ops: " << ops << "  (runs=" << RUNS << ")\n";
+    std::cout << "  Min per operation (ns):    "
+              << static_cast<double>(minNs) / static_cast<double>(ops) << "\n";
+    std::cout << "  Median per operation (ns): "
+              << static_cast<double>(medNs) / static_cast<double>(ops) << "\n\n";
 }
-

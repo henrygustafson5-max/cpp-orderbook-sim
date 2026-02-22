@@ -1,5 +1,7 @@
-#pragma once 
+#pragma once
 #include "order.hpp"
+#include <cstdint>
+#include <vector>
 
 using TradeID = std::uint64_t; 
 

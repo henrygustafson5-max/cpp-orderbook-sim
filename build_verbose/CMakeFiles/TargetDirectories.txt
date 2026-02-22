@@ -1,0 +1,3 @@
+/Users/henrygustafson/dev/cpp-orderbook-sim/build_verbose/CMakeFiles/orderbook_sim.dir
+/Users/henrygustafson/dev/cpp-orderbook-sim/build_verbose/CMakeFiles/edit_cache.dir
+/Users/henrygustafson/dev/cpp-orderbook-sim/build_verbose/CMakeFiles/rebuild_cache.dir

@@ -4,13 +4,15 @@
 
     void MatchingEngine::submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price)
     {
-    auto limitOrder = std::make_unique<LimitOrder>(orderSide, quantity, orderID, price); 
-    fillAndRestLimitOrder(std::move(limitOrder)); 
+        if (quantity == 0 || price <= 0) return;
+        auto limitOrder = std::make_unique<LimitOrder>(orderSide, quantity, orderID, price);
+        fillAndRestLimitOrder(std::move(limitOrder));
     }
 
-    void MatchingEngine::submitMarketOrder( OrderSide side, Quantity quantity, OrderID id)
+    void MatchingEngine::submitMarketOrder(OrderSide side, Quantity quantity, OrderID id)
     {
-    MatchingEngine::fillMarketOrder(side, quantity, id); 
+        if (quantity == 0) return;
+        MatchingEngine::fillMarketOrder(side, quantity, id);
     }    
 
     void MatchingEngine::fillMarketOrder(OrderSide marketSide, Quantity marketQty, OrderID marketID)

@@ -1,6 +1,5 @@
 #include "order_book.hpp"
 #include "order.hpp"
-#include <cassert>
 #include <optional>
 
 
@@ -28,19 +27,19 @@
         return !m_BidSide.empty();
     }
 
-  
+    
 
-    std::optional<Price> OrderBook::bestBid() const 
+    std::optional<Price> OrderBook::bestBid() const
     {
-        if (m_BidSide.empty()) return std::nullopt; 
-        assert(!m_BidSide.begin()->second.empty()); 
-        return m_BidSide.begin()->first; 
+        if (m_BidSide.empty()) return std::nullopt;
+        if (m_BidSide.begin()->second.empty()) return std::nullopt;
+        return m_BidSide.begin()->first;
     }
 
     std::optional<Price> OrderBook::bestAsk() const
     {
-        if (m_AskSide.empty()) return std::nullopt; 
-        assert(!m_AskSide.begin()->second.empty());
+        if (m_AskSide.empty()) return std::nullopt;
+        if (m_AskSide.begin()->second.empty()) return std::nullopt;
         return m_AskSide.begin()->first;
     }
 

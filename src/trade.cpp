@@ -1,7 +1,5 @@
 #include "trade.hpp"
-#include "order.hpp"
 #include <iostream>
-using TradeID = std::uint64_t; 
 
 
 

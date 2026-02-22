@@ -1,14 +1,5 @@
 #include "order.hpp"
 #include <atomic>
-#include <cstdint>
-#include <chrono>
-
-using Clock = std::chrono::steady_clock;
-using Timestamp = Clock::time_point; 
-
-using Price = int32_t;
-using Quantity = uint32_t;
-using OrderID = int32_t;
 
 
     OrderID OrderIDGenerator::next()

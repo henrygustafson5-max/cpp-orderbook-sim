@@ -2,13 +2,28 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build & Run (Toy C++)",
+      "label": "Build (CMake Release)",
       "type": "shell",
-      "command": "clang++ -std=c++20 src/main.cpp -o app && ./app",
+      "command": "cmake --build build",
       "group": {
         "kind": "build",
         "isDefault": true
       },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Configure & Build (CMake Release)",
+      "type": "shell",
+      "command": "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build",
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Run Benchmarks",
+      "type": "shell",
+      "command": "./build/orderbook_sim",
+      "group": "test",
+      "dependsOn": "Build (CMake Release)",
       "problemMatcher": []
     }
   ]

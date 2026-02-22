@@ -10,7 +10,6 @@ int main()
 {
     std::cout << "=== Matching Engine Benchmarks ===\n\n";
 
-    // Warm-up (optional but good practice)
     benchmarkLimitInsert(static_cast<std::size_t>(1000));
 
     // Core benchmarks
