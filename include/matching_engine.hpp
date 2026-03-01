@@ -23,4 +23,11 @@ class MatchingEngine
 
     std::size_t getLogSize() const ;
 
+    std::optional<Price> bestBid() const;
+
+    std::optional<Price> bestAsk() const;
+
+    bool hasAsk() const;
+
+    bool hasBid() const;
 };

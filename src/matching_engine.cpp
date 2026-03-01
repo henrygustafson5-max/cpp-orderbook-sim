@@ -126,3 +126,24 @@
     {
         return tradelog.getTradeLogSize();
     }
+
+
+    std::optional<Price> MatchingEngine::bestBid() const
+    {
+        return book.bestBid();
+    }
+
+    std::optional<Price> MatchingEngine::bestAsk() const
+    {
+        return book.bestAsk();
+    }
+   
+    bool MatchingEngine::hasAsk() const
+    {
+        return book.hasAsks();
+    }
+    
+    bool MatchingEngine::hasBid() const
+    {
+        return book.hasBids();
+    }
