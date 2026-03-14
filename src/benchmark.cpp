@@ -1,120 +1,68 @@
-#include <algorithm>
-#include <chrono>
-#include <iostream>
-#include <vector>
+#include <benchmark/benchmark.h>
 #include "matching_engine.hpp"
 
-using Clock = std::chrono::steady_clock;
-using Nanoseconds = std::chrono::nanoseconds;
-
-static constexpr int RUNS = 5;
-
-static long long medianOf(std::vector<long long>& v)
+static void BM_LimitInsert(benchmark::State& state)
 {
-    std::sort(v.begin(), v.end());
-    return v[v.size() / 2];
-}
-
-void benchmarkLimitInsert(std::size_t numOrders)
-{
-    std::vector<long long> samples;
-    samples.reserve(RUNS);
-
-    for (int run = 0; run < RUNS; ++run)
+    const auto numOrders = static_cast<std::size_t>(state.range(0));
+    for (auto _ : state)
     {
         MatchingEngine engine;
-        const auto start = Clock::now();
         for (std::size_t i = 0; i < numOrders; ++i)
         {
-            Price price = 100 + static_cast<Price>(i % 50);
+            const Price price = 100 + static_cast<Price>(i % 50);
             engine.submitLimitOrder(OrderSide::Bid, 100, OrderIDGenerator::next(), price);
         }
-        const auto end = Clock::now();
-        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
-
-    const long long minNs  = *std::min_element(samples.begin(), samples.end());
-    const long long medNs  = medianOf(samples);
-
-    std::cout << "Limit inserts: " << numOrders << "  (runs=" << RUNS << ")\n";
-    std::cout << "  Min per insert (ns):    "
-              << static_cast<double>(minNs) / static_cast<double>(numOrders) << "\n";
-    std::cout << "  Median per insert (ns): "
-              << static_cast<double>(medNs) / static_cast<double>(numOrders) << "\n\n";
+    state.SetItemsProcessed(state.iterations() * static_cast<int64_t>(numOrders));
 }
+BENCHMARK(BM_LimitInsert)->Arg(1000)->Arg(100000);
 
-void benchmarkMarketFill(std::size_t depth)
+static void BM_MarketFill(benchmark::State& state)
 {
-    std::vector<long long> samples;
-    samples.reserve(RUNS);
-
-    for (int run = 0; run < RUNS; ++run)
+    const auto depth = static_cast<std::size_t>(state.range(0));
+    for (auto _ : state)
     {
+        state.PauseTiming();
         MatchingEngine engine;
-
         for (std::size_t i = 0; i < depth; ++i)
         {
-            const Price price    = static_cast<Price>(100 + static_cast<Price>(i));
+            const Price    price = static_cast<Price>(100 + static_cast<Price>(i));
             const Quantity qty   = static_cast<Quantity>(100);
             engine.submitLimitOrder(OrderSide::Ask, qty, OrderIDGenerator::next(), price);
         }
-
         const Quantity marketQty =
             static_cast<Quantity>(depth) * static_cast<Quantity>(100);
+        state.ResumeTiming();
 
-        const auto start = Clock::now();
         engine.submitMarketOrder(OrderSide::Bid, marketQty, OrderIDGenerator::next());
-        const auto end = Clock::now();
-
-        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
-
-    const long long minNs  = *std::min_element(samples.begin(), samples.end());
-    const long long medNs  = medianOf(samples);
-
-    std::cout << "Market fill depth: " << depth << "  (runs=" << RUNS << ")\n";
-    std::cout << "  Min per price level (ns):    "
-              << static_cast<double>(minNs) / static_cast<double>(depth) << "\n";
-    std::cout << "  Median per price level (ns): "
-              << static_cast<double>(medNs) / static_cast<double>(depth) << "\n\n";
+    state.SetItemsProcessed(state.iterations() * static_cast<int64_t>(depth));
 }
+BENCHMARK(BM_MarketFill)->Arg(10000);
 
-void benchmarkMixed(std::size_t ops)
+static void BM_Mixed(benchmark::State& state)
 {
-    std::vector<long long> samples;
-    samples.reserve(RUNS);
-
-    for (int run = 0; run < RUNS; ++run)
+    const auto ops = static_cast<std::size_t>(state.range(0));
+    for (auto _ : state)
     {
         MatchingEngine engine;
-        const auto start = Clock::now();
-
         for (std::size_t i = 0; i < ops; ++i)
         {
-            const bool isMarket = (i % static_cast<std::size_t>(3)) == static_cast<std::size_t>(0);
-            if (isMarket)
+            if ((i % 3) == 0)
             {
-                const Quantity marketQty = static_cast<Quantity>(50);
-                engine.submitMarketOrder(OrderSide::Bid, marketQty, OrderIDGenerator::next());
+                engine.submitMarketOrder(
+                    OrderSide::Bid, static_cast<Quantity>(50), OrderIDGenerator::next());
             }
             else
             {
-                const Price price  = static_cast<Price>(100 + static_cast<Price>(i % 20));
-                const Quantity qty = static_cast<Quantity>(100);
+                const Price    price = static_cast<Price>(100 + static_cast<Price>(i % 20));
+                const Quantity qty   = static_cast<Quantity>(100);
                 engine.submitLimitOrder(OrderSide::Ask, qty, OrderIDGenerator::next(), price);
             }
         }
-
-        const auto end = Clock::now();
-        samples.push_back(std::chrono::duration_cast<Nanoseconds>(end - start).count());
     }
-
-    const long long minNs  = *std::min_element(samples.begin(), samples.end());
-    const long long medNs  = medianOf(samples);
-
-    std::cout << "Mixed workload ops: " << ops << "  (runs=" << RUNS << ")\n";
-    std::cout << "  Min per operation (ns):    "
-              << static_cast<double>(minNs) / static_cast<double>(ops) << "\n";
-    std::cout << "  Median per operation (ns): "
-              << static_cast<double>(medNs) / static_cast<double>(ops) << "\n\n";
+    state.SetItemsProcessed(state.iterations() * static_cast<int64_t>(ops));
 }
+BENCHMARK(BM_Mixed)->Arg(200000);
+
+BENCHMARK_MAIN();

@@ -11,8 +11,9 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# ── Google Test via FetchContent ──────────────────────────────
+# ── Dependencies via FetchContent ─────────────────────────────
 include(FetchContent)
+
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -21,7 +22,17 @@ FetchContent_Declare(
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
+    googlebenchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG        v1.9.1
+    GIT_SHALLOW    TRUE
+)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest googlebenchmark)
 
 # ── Core library (shared by sim and tests) ────────────────────
 add_library(orderbook_lib STATIC
@@ -34,13 +45,20 @@ target_include_directories(orderbook_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_options(orderbook_lib PRIVATE
     -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
 
-# ── Main executable (unchanged behavior) ─────────────────────
+# ── Main executable ───────────────────────────────────────────
 add_executable(orderbook_sim
     src/main.cpp
-    src/benchmark.cpp
 )
 target_link_libraries(orderbook_sim PRIVATE orderbook_lib)
 target_compile_options(orderbook_sim PRIVATE
+    -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
+
+# ── Benchmarks ────────────────────────────────────────────────
+add_executable(orderbook_bench
+    src/benchmark.cpp
+)
+target_link_libraries(orderbook_bench PRIVATE orderbook_lib benchmark::benchmark)
+target_compile_options(orderbook_bench PRIVATE
     -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
 
 # ── Unit tests ────────────────────────────────────────────────
