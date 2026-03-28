@@ -2,3 +2,6 @@ build/
 .cache/n.vscode/
 build_verbose/
 *.o
+build/
+.cache/
+.vscode/
