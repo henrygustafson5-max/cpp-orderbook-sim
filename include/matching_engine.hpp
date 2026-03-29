@@ -13,6 +13,8 @@ class MatchingEngine
 
     void fillMarketOrder(OrderSide marketSide, Quantity marketQty, OrderID marketID); 
 
+    bool cancelOrder(OrderID id, const OrderInfo& info);
+    
     public:
 
     void submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price);
@@ -26,6 +28,8 @@ class MatchingEngine
     std::optional<Price> bestBid() const;
 
     std::optional<Price> bestAsk() const;
+
+    bool requestCancel(OrderID id);
 
     bool hasAsk() const;
 

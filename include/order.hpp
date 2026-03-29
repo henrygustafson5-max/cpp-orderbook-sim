@@ -47,4 +47,6 @@ class LimitOrder
 
     void setQuantity(Quantity newQuantity);
 
+    
+
 };
