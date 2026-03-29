@@ -2,6 +2,9 @@ build/
 .cache/n.vscode/
 build_verbose/
 *.o
+n.cache/n.vscode/
+
+echo -e .cache/
 build/
 .cache/
 .vscode/

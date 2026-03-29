@@ -1,7 +1,8 @@
 #include "matching_engine.hpp"
+#include "order.hpp"
 
 
-
+    
     void MatchingEngine::submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price)
     {
         if (quantity == 0 || price <= 0) return;
@@ -117,7 +118,23 @@
             book.addAsk(std::move(limitOrder));
        }
     }
-    
+
+    bool MatchingEngine::requestCancel(OrderID id)
+    {
+        auto exists = book.lookup(id);
+        if(!exists) return false;
+        OrderInfo info = *exists;
+        return cancelOrder(id, info);
+
+    }
+
+    bool MatchingEngine::cancelOrder(OrderID id, const OrderInfo& info)
+    {
+        if(book.removeOrder(id, info)) return true;
+        return false;
+    }
+
+
     void MatchingEngine::printTrade(std::size_t index) const 
     {
         tradelog.printTrade(index);
