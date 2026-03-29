@@ -4,6 +4,7 @@
 #include <deque> 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 using Queue = std::deque<std::unique_ptr<LimitOrder>>; 
 struct ExecutionReport
