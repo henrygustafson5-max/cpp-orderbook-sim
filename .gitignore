@@ -5,4 +5,6 @@ build_verbose/
 n.cache/n.vscode/
 
 echo -e .cache/
+build/
+.cache/
 .vscode/
