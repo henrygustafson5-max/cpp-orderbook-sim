@@ -2,6 +2,8 @@
 #include "order_book.hpp"
 #include "trade.hpp"
 
+
+
 class MatchingEngine
 {
     private: 
@@ -13,9 +15,10 @@ class MatchingEngine
 
     void fillMarketOrder(OrderSide marketSide, Quantity marketQty, OrderID marketID); 
 
-    bool cancelOrder(OrderID id, const OrderInfo& info);
     
     public:
+
+
 
     void submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price);
 
@@ -28,10 +31,18 @@ class MatchingEngine
     std::optional<Price> bestBid() const;
 
     std::optional<Price> bestAsk() const;
+    
+    bool requestModify(OrderID id);
 
-    bool requestCancel(OrderID id);
+    bool cancelOrder(OrderID id);
+    
+    bool reduceOrder(OrderID id, Quantity newQty);
+
+    bool cancelReplace(OrderID id, Quantity newQTY, Price newPrice);    
 
     bool hasAsk() const;
 
     bool hasBid() const;
 };
+
+

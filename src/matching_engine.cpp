@@ -10,6 +10,7 @@
         fillAndRestLimitOrder(std::move(limitOrder));
     }
 
+
     void MatchingEngine::submitMarketOrder(OrderSide side, Quantity quantity, OrderID id)
     {
         if (quantity == 0) return;
@@ -119,22 +120,39 @@
        }
     }
 
-    bool MatchingEngine::requestCancel(OrderID id)
-    {
-        auto exists = book.lookup(id);
-        if(!exists) return false;
-        OrderInfo info = *exists;
-        return cancelOrder(id, info);
 
+    bool MatchingEngine::requestModify(OrderID id)
+    {
+      return book.orderExists(id);
     }
 
-    bool MatchingEngine::cancelOrder(OrderID id, const OrderInfo& info)
+    bool MatchingEngine::cancelOrder(OrderID id)
     {
-        if(book.removeOrder(id, info)) return true;
-        return false;
+        if(!requestModify(id)) return false;
+        book.cancelOrder(id);
+        return true;
     }
-
-
+    
+    bool MatchingEngine::reduceOrder(OrderID id, Quantity newQty) 
+    {
+      if(!requestModify(id)) return false; 
+      auto info = book.infoFromID(id);
+      const auto& order = *info.orderIT;
+      Quantity restingQTY = order->getQuantity();
+      if(newQty <= 0 || newQty >= restingQTY) return false;
+      book.reduceQuantity(id,newQty);
+      return true;
+    }
+    bool MatchingEngine::cancelReplace(OrderID id, Quantity newQTY, Price newPrice)
+    {
+      if(!requestModify(id)) return false;
+      auto info = book.infoFromID(id);
+      OrderSide side = info.side;
+      if(!cancelOrder(id)) return false;
+      MatchingEngine::submitLimitOrder(side, newQTY, OrderIDGenerator::next() , newPrice);
+      return true;
+    }
+   
     void MatchingEngine::printTrade(std::size_t index) const 
     {
         tradelog.printTrade(index);

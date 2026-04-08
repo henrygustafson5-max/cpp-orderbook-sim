@@ -8,17 +8,26 @@
     void OrderBook::addBid(std::unique_ptr<LimitOrder> order)
     {
        const Price price = order->getPrice();
-        m_lookup[order->getOrderID()] = {order->getOrderSide(), order->getQuantity(), order->getPrice()};
-        m_BidSide[price].push_back(std::move(order));
+       const OrderID id = order->getOrderID();
+       const Quantity qty = order->getQuantity(); 
+       auto [levelIT, inserted] = m_BidSide.try_emplace(price);
+       auto& level = levelIT->second; 
+       auto orderIT = level.orders.insert(level.orders.end(), std::move(order));
+       level.levelQTY += qty;
+       m_lookup[id] =  LookUp{OrderSide::Bid, orderIT, price,qty };
     }
-
+  
     void OrderBook::addAsk(std::unique_ptr<LimitOrder> order)
-    {
-        const Price price = order->getPrice();
-        m_lookup[order->getOrderID()] = {order->getOrderSide(), order->getQuantity(), order->getPrice()};
-        m_AskSide[price].push_back(std::move(order));
+    { 
+       const Price price = order->getPrice();
+       const OrderID id = order->getOrderID();
+       const Quantity qty = order->getQuantity(); 
+       auto [levelIT, inserted] = m_AskSide.try_emplace(price);
+       auto& level = levelIT->second; 
+       auto orderIT = level.orders.insert(level.orders.end(), std::move(order));
+       level.levelQTY += qty;
+       m_lookup[id] =  LookUp{OrderSide::Ask, orderIT, price,qty}; 
     }
-
    
     bool OrderBook::hasAsks() const
     {
@@ -27,22 +36,20 @@
 
     bool OrderBook::hasBids() const
     {
-        return !m_BidSide.empty();
+       return !m_BidSide.empty(); 
     }
-
-    
 
     std::optional<Price> OrderBook::bestBid() const
     {
         if (m_BidSide.empty()) return std::nullopt;
-        if (m_BidSide.begin()->second.empty()) return std::nullopt;
+        if (m_BidSide.begin()->second.orders.empty()) return std::nullopt;
         return m_BidSide.begin()->first;
     }
 
     std::optional<Price> OrderBook::bestAsk() const
     {
         if (m_AskSide.empty()) return std::nullopt;
-        if (m_AskSide.begin()->second.empty()) return std::nullopt;
+        if (m_AskSide.begin()->second.orders.empty()) return std::nullopt;
         return m_AskSide.begin()->first;
     }
 
@@ -50,7 +57,7 @@
     {   
         if (m_AskSide.empty()) return std::nullopt;
         auto priceIt = m_AskSide.begin();
-        auto& orderQueue = priceIt->second; 
+        auto& orderQueue = priceIt->second.orders; 
         if (orderQueue.empty()) return std::nullopt;
         LimitOrder& restingOrder = *orderQueue.front(); 
         Quantity executed = std::min(quantity, restingOrder.getQuantity());
@@ -74,7 +81,7 @@
     {
         if (m_BidSide.empty()) return std::nullopt;
         auto priceIt = m_BidSide.begin();
-        auto& orderQueue = priceIt->second;
+        auto& orderQueue = priceIt->second.orders;
         if (orderQueue.empty()) return std::nullopt;
         LimitOrder& restingOrder = *orderQueue.front();
         Quantity executed = std::min(quantity, restingOrder.getQuantity());
@@ -94,41 +101,49 @@
         return ExecutionReport{rPrice, rID, executed};
     }
 
-    std::optional<OrderInfo> OrderBook::lookup(OrderID id)
+
+    bool OrderBook::orderExists(OrderID id)
     {
         if(m_lookup.contains(id))
         {
-            return m_lookup[id];
+          return true;
         }
-        else return std::nullopt;
+        return false;
     }
-
-    bool OrderBook::removeOrder(OrderID id, OrderInfo info)
+    
+    LookUp OrderBook::infoFromID(OrderID id)
     {
-        if(info.side == OrderSide::Bid ){
-            auto mapIt = m_BidSide.find(info.price);
-            auto& deque = mapIt->second;
-
-            auto it = std::find_if(deque.begin(), deque.end(), [id](const std::unique_ptr<LimitOrder>& order) {
-                return order->getOrderID() == id;
-            });
-            
-            deque.erase(it);
-
-            if(deque.empty()) m_BidSide.erase(mapIt);
-        }
-        else {
-            auto mapIt = m_AskSide.find(info.price);
-            auto& deque = mapIt->second;
-
-            auto it = std::find_if(deque.begin(), deque.end(), [id](const std::unique_ptr<LimitOrder>& order) {
-                return order->getOrderID() == id;
-            });
-            
-            deque.erase(it);
-
-            if(deque.empty()) m_AskSide.erase(mapIt); 
-        
-        }
-        return true;
+      return m_lookup[id];
     }
+  
+    void OrderBook::cancelOrder(OrderID id)
+    {    
+       LookUp info = m_lookup[id]; 
+       Price price = info.price;
+       const auto& order = *info.orderIT;
+       Quantity removingQty = order->getQuantity();
+       if(info.side == OrderSide::Bid)
+       {   
+        auto mapIt = m_BidSide.find(price);
+        mapIt->second.levelQTY -= removingQty;
+        mapIt->second.orders.erase(info.orderIT);
+        if(mapIt->second.levelQTY == 0 ) m_BidSide.erase(price); 
+       }
+      else 
+      {   
+        auto mapIt = m_AskSide.find(price);
+        mapIt->second.levelQTY -= removingQty;
+        mapIt->second.orders.erase(info.orderIT);
+        if(mapIt->second.levelQTY == 0 ) m_AskSide.erase(price); 
+      }
+    }
+     
+    void OrderBook::reduceQuantity(OrderID id, Quantity newQTY)
+    {
+        LookUp info = m_lookup[id];
+        auto const& order = *info.orderIT;
+        order->setQuantity(newQTY); 
+      
+    }
+
+           

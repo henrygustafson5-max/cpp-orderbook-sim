@@ -469,7 +469,7 @@ TEST(CancelOrderTest, CancelRestingBidSucceeds)
     engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
 
     ASSERT_TRUE(engine.hasBid());
-    EXPECT_TRUE(engine.requestCancel(id));
+    EXPECT_TRUE(engine.cancelOrder(id));
     EXPECT_FALSE(engine.hasBid());
 }
 
@@ -480,14 +480,14 @@ TEST(CancelOrderTest, CancelRestingAskSucceeds)
     engine.submitLimitOrder(OrderSide::Ask, 10, id, 100);
 
     ASSERT_TRUE(engine.hasAsk());
-    EXPECT_TRUE(engine.requestCancel(id));
+    EXPECT_TRUE(engine.cancelOrder(id));
     EXPECT_FALSE(engine.hasAsk());
 }
 
 TEST(CancelOrderTest, CancelNonExistentOrderReturnsFalse)
 {
     MatchingEngine engine;
-    EXPECT_FALSE(engine.requestCancel(99999));
+    EXPECT_FALSE(engine.cancelOrder(99999));
 }
 
 TEST(CancelOrderTest, CancelAlreadyFilledOrderReturnsFalse)
@@ -498,7 +498,7 @@ TEST(CancelOrderTest, CancelAlreadyFilledOrderReturnsFalse)
     engine.submitMarketOrder(OrderSide::Bid, 10, nextID()); // fully fills the ask
 
     EXPECT_FALSE(engine.hasAsk());
-    EXPECT_FALSE(engine.requestCancel(id)); // already consumed, not in lookup
+    EXPECT_FALSE(engine.cancelOrder(id)); // already consumed, not in lookup
 }
 
 TEST(CancelOrderTest, CancelBestBidPromotesNextLevel)
@@ -509,7 +509,7 @@ TEST(CancelOrderTest, CancelBestBidPromotesNextLevel)
     engine.submitLimitOrder(OrderSide::Bid, 10, nextID(),  100);
 
     ASSERT_EQ(engine.bestBid().value(), 105);
-    engine.requestCancel(bestID);
+    engine.cancelOrder(bestID);
 
     ASSERT_TRUE(engine.hasBid());
     EXPECT_EQ(engine.bestBid().value(), 100);
@@ -523,7 +523,7 @@ TEST(CancelOrderTest, CancelBestAskPromotesNextLevel)
     engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 105);
 
     ASSERT_EQ(engine.bestAsk().value(), 100);
-    engine.requestCancel(bestID);
+    engine.cancelOrder(bestID);
 
     ASSERT_TRUE(engine.hasAsk());
     EXPECT_EQ(engine.bestAsk().value(), 105);
@@ -535,7 +535,7 @@ TEST(CancelOrderTest, CancelOnlyOrderEmptiesBook)
     OrderID id = nextID();
     engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
 
-    engine.requestCancel(id);
+    engine.cancelOrder(id);
 
     EXPECT_FALSE(engine.hasBid());
     EXPECT_FALSE(engine.bestBid().has_value());
@@ -552,7 +552,7 @@ TEST(CancelOrderTest, CancelMiddleOrderInQueuePreservesOthers)
     engine.submitLimitOrder(OrderSide::Bid, 5, middle, 100);
     engine.submitLimitOrder(OrderSide::Bid, 5, last,   100);
 
-    engine.requestCancel(middle);
+    engine.cancelOrder(middle);
 
     // Market sell qty 5 — should consume 'first' (FIFO), leaving only 'last'
     engine.submitMarketOrder(OrderSide::Ask, 5, nextID());
@@ -565,7 +565,7 @@ TEST(CancelOrderTest, CancelDoesNotGenerateTrade)
     MatchingEngine engine;
     OrderID id = nextID();
     engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
-    engine.requestCancel(id);
+    engine.cancelOrder(id);
 
     EXPECT_EQ(engine.getLogSize(), 0u);
 }
@@ -575,7 +575,7 @@ TEST(CancelOrderTest, CancelledBidNoLongerMatchesIncomingAsk)
     MatchingEngine engine;
     OrderID id = nextID();
     engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
-    engine.requestCancel(id);
+    engine.cancelOrder(id);
 
     // Incoming ask at same price — nothing to cross against
     engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100);
@@ -590,7 +590,7 @@ TEST(CancelOrderTest, CancelledAskNoLongerMatchesIncomingBid)
     MatchingEngine engine;
     OrderID id = nextID();
     engine.submitLimitOrder(OrderSide::Ask, 10, id, 100);
-    engine.requestCancel(id);
+    engine.cancelOrder(id);
 
     // Incoming bid at same price — nothing to cross against
     engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100);
