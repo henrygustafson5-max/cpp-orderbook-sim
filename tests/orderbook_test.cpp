@@ -599,3 +599,387 @@ TEST(CancelOrderTest, CancelledAskNoLongerMatchesIncomingBid)
     EXPECT_TRUE(engine.hasBid());
     EXPECT_FALSE(engine.hasAsk());
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reduce Order Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(ReduceOrderTest, ReduceBidSucceeds)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_TRUE(engine.reduceOrder(id, 5));
+}
+
+TEST(ReduceOrderTest, ReduceAskSucceeds)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, id, 100);
+    EXPECT_TRUE(engine.reduceOrder(id, 5));
+}
+
+TEST(ReduceOrderTest, ReduceToZeroFails)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_FALSE(engine.reduceOrder(id, 0));
+    EXPECT_TRUE(engine.hasBid()); // order unchanged
+}
+
+TEST(ReduceOrderTest, ReduceToSameQtyFails)
+{
+    // newQty == current qty is not a reduction
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_FALSE(engine.reduceOrder(id, 10));
+    EXPECT_TRUE(engine.hasBid());
+}
+
+TEST(ReduceOrderTest, ReduceAboveCurrentQtyFails)
+{
+    // Increasing quantity is not allowed
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_FALSE(engine.reduceOrder(id, 20));
+    EXPECT_TRUE(engine.hasBid());
+}
+
+TEST(ReduceOrderTest, ReduceNonExistentOrderFails)
+{
+    MatchingEngine engine;
+    EXPECT_FALSE(engine.reduceOrder(99999, 5));
+}
+
+TEST(ReduceOrderTest, ReduceDoesNotGenerateTrade)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.reduceOrder(id, 5);
+    EXPECT_EQ(engine.getLogSize(), 0u);
+}
+
+TEST(ReduceOrderTest, ReducedQtyIsFilledOnNextMatch)
+{
+    // Market sell of qty 10 should only fill 5 after reduce — not more
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.reduceOrder(id, 5);
+
+    engine.submitMarketOrder(OrderSide::Ask, 10, nextID()); // wants 10, only 5 available
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid()); // reduced bid fully consumed
+}
+
+TEST(ReduceOrderTest, ReduceDoesNotChangePriceLevel)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.reduceOrder(id, 3);
+    ASSERT_TRUE(engine.bestBid().has_value());
+    EXPECT_EQ(engine.bestBid().value(), 100);
+}
+
+TEST(ReduceOrderTest, ReducePreservesFIFOPosition)
+{
+    // Two bids at the same price. Reduce the first. A market sell of exactly
+    // the reduced qty should consume the first (FIFO head), leaving the second.
+    MatchingEngine engine;
+    OrderID first  = nextID();
+    OrderID second = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, first,  100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, second, 100);
+    engine.reduceOrder(first, 3);
+
+    // Market sell 3 — must hit 'first' (FIFO), consuming it entirely
+    engine.submitMarketOrder(OrderSide::Ask, 3, nextID());
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    ASSERT_TRUE(engine.hasBid());
+
+    // Market sell 10 — must now hit 'second'
+    engine.submitMarketOrder(OrderSide::Ask, 10, nextID());
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(ReduceOrderTest, ReduceBidToOneSucceeds)
+{
+    // Boundary: reduce to qty 1 (minimum valid)
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 100, id, 100);
+    EXPECT_TRUE(engine.reduceOrder(id, 1));
+
+    engine.submitMarketOrder(OrderSide::Ask, 5, nextID()); // only 1 available
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(ReduceOrderTest, ReducePartiallyFilledOrder)
+{
+    // Partially fill a bid (10 → 7 remaining), then reduce the remainder to 4
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.submitMarketOrder(OrderSide::Ask, 3, nextID()); // 3 filled, 7 remaining
+    ASSERT_EQ(engine.getLogSize(), 1u);
+    ASSERT_TRUE(engine.hasBid());
+
+    EXPECT_TRUE(engine.reduceOrder(id, 4));
+
+    // Market sell 10 — should only fill 4
+    engine.submitMarketOrder(OrderSide::Ask, 10, nextID());
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(ReduceOrderTest, ReducePartiallyFilledOrderAboveRemainingFails)
+{
+    // 7 units remain after a partial fill; reducing to 8 (> remaining) must fail
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.submitMarketOrder(OrderSide::Ask, 3, nextID()); // 7 remaining
+
+    EXPECT_FALSE(engine.reduceOrder(id, 8));
+}
+
+TEST(ReduceOrderTest, ReduceAskPreservesBestAskPrice)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 20, id, 105);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 110);
+    engine.reduceOrder(id, 5);
+    EXPECT_EQ(engine.bestAsk().value(), 105); // best ask price unchanged
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cancel Replace Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(CancelReplaceTest, ReplaceBidSucceeds)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_TRUE(engine.cancelReplace(id, 10, 105));
+}
+
+TEST(CancelReplaceTest, ReplaceAskSucceeds)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, id, 110);
+    EXPECT_TRUE(engine.cancelReplace(id, 10, 105));
+}
+
+TEST(CancelReplaceTest, NonExistentOrderFails)
+{
+    MatchingEngine engine;
+    EXPECT_FALSE(engine.cancelReplace(99999, 10, 100));
+}
+
+TEST(CancelReplaceTest, OldPriceLevelRemovedWhenAlone)
+{
+    // Single bid at 100 replaced with 105 — old level must disappear
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.cancelReplace(id, 10, 105);
+
+    ASSERT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 105);
+}
+
+TEST(CancelReplaceTest, NewOrderRestsAtNewPrice)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.cancelReplace(id, 10, 95); // lower price, no ask to cross
+    ASSERT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 95);
+}
+
+TEST(CancelReplaceTest, NoTradeWhenNewPriceDoesNotCross)
+{
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 110);
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.cancelReplace(id, 10, 105); // new bid 105 still below ask 110
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_TRUE(engine.hasBid());
+    EXPECT_TRUE(engine.hasAsk());
+    EXPECT_EQ(engine.bestBid().value(), 105);
+}
+
+TEST(CancelReplaceTest, CrossingNewPriceExecutesTrade)
+{
+    // Ask rests at 100. Bid at 90 doesn't cross. Replace bid at 100 — crosses.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 90);
+    engine.cancelReplace(id, 10, 100);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(CancelReplaceTest, CrossingNewPricePartiallyExecutes)
+{
+    // Ask qty 5 at 100. Bid qty 10 at 90. Replace bid qty 10 at 100 — partial fill.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 90);
+    engine.cancelReplace(id, 10, 100);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasAsk());       // ask fully consumed
+    EXPECT_TRUE(engine.hasBid());        // 5 units of new bid rest
+    EXPECT_EQ(engine.bestBid().value(), 100);
+}
+
+TEST(CancelReplaceTest, PreservesOtherOrdersAtOldPrice)
+{
+    // Two bids at 100. Replace the first — the second stays at 100.
+    MatchingEngine engine;
+    OrderID first  = nextID();
+    OrderID second = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, first,  100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, second, 100);
+    engine.cancelReplace(first, 10, 105);
+
+    ASSERT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 105);
+
+    // 'second' at 100 still present — market sell 10 fills it
+    engine.submitMarketOrder(OrderSide::Ask, 10, nextID());
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_TRUE(engine.hasBid()); // replaced 'first' at 105 still resting
+}
+
+TEST(CancelReplaceTest, LosesPriorityAtSamePrice)
+{
+    // Two bids at 100 (first, second). Replace 'first' at the same price 100.
+    // 'second' becomes FIFO head; replaced 'first' goes to the back.
+    MatchingEngine engine;
+    OrderID first  = nextID();
+    OrderID second = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 5, first,  100);
+    engine.submitLimitOrder(OrderSide::Bid, 5, second, 100);
+    engine.cancelReplace(first, 5, 100); // same price — loses priority
+
+    // Market sell 5 fills 'second' (now FIFO head)
+    engine.submitMarketOrder(OrderSide::Ask, 5, nextID());
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    ASSERT_TRUE(engine.hasBid()); // replaced 'first' (now last) still resting
+}
+
+TEST(CancelReplaceTest, LosesPriorityBehindExistingAtNewPrice)
+{
+    // Bid A at 100, Bid B at 105. Replace A to 105 — A goes behind B at 105.
+    MatchingEngine engine;
+    OrderID a = nextID();
+    OrderID b = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 5, a, 100);
+    engine.submitLimitOrder(OrderSide::Bid, 5, b, 105);
+    engine.cancelReplace(a, 5, 105); // A moves to 105, goes behind B
+
+    // Market sell 5: should fill B (FIFO head at 105), not A
+    engine.submitMarketOrder(OrderSide::Ask, 5, nextID());
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    ASSERT_TRUE(engine.hasBid()); // A (replaced) still resting at 105
+    EXPECT_EQ(engine.bestBid().value(), 105);
+}
+
+TEST(CancelReplaceTest, DoesNotGenerateTradeForCancellation)
+{
+    // Replace bid with a lower non-crossing price — zero trades total
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.cancelReplace(id, 10, 90);
+    EXPECT_EQ(engine.getLogSize(), 0u);
+}
+
+TEST(CancelReplaceTest, ReplaceWithNewQuantity)
+{
+    // Replaced order carries the new quantity
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, id, 100);
+    engine.cancelReplace(id, 25, 105); // new qty 25
+
+    engine.submitMarketOrder(OrderSide::Bid, 25, nextID());
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(CancelReplaceTest, ZeroNewQtyCancelsOldWithoutRestingNewOrder)
+{
+    // submitLimitOrder silently rejects qty==0; cancelReplace still returns true,
+    // but the old order is gone and no new order is resting.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_TRUE(engine.cancelReplace(id, 0, 100));
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_EQ(engine.getLogSize(), 0u);
+}
+
+TEST(CancelReplaceTest, ZeroNewPriceCancelsOldWithoutRestingNewOrder)
+{
+    // submitLimitOrder silently rejects price==0; same behaviour as above.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    EXPECT_TRUE(engine.cancelReplace(id, 10, 0));
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_EQ(engine.getLogSize(), 0u);
+}
+
+TEST(CancelReplaceTest, ReplacePartiallyFilledOrder)
+{
+    // Partially fill a bid, then cancel-replace it. The remaining qty is
+    // cancelled; a fresh new order rests at the new price.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.submitMarketOrder(OrderSide::Ask, 3, nextID()); // 3 filled, 7 remaining
+    ASSERT_EQ(engine.getLogSize(), 1u);
+
+    EXPECT_TRUE(engine.cancelReplace(id, 10, 105));
+    EXPECT_EQ(engine.getLogSize(), 1u); // replace itself generates no trade
+    ASSERT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 105);
+}
+
+TEST(CancelReplaceTest, AskSideUnaffectedWhenBidReplacedToBelowAsk)
+{
+    // Replacing a bid to a price that still doesn't cross the ask
+    // must leave the ask side completely untouched.
+    MatchingEngine engine;
+    OrderID id = nextID();
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 110);
+    engine.submitLimitOrder(OrderSide::Bid, 10, id, 100);
+    engine.cancelReplace(id, 10, 108); // still below ask of 110
+
+    EXPECT_TRUE(engine.hasAsk());
+    EXPECT_EQ(engine.bestAsk().value(), 110);
+    EXPECT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 108);
+    EXPECT_EQ(engine.getLogSize(), 0u);
+}
