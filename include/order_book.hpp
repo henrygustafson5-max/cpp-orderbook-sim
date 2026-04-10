@@ -54,6 +54,8 @@ class OrderBook
     
     LookUp infoFromID(OrderID id);
 
+    bool FOKVolumeCheck(OrderSide side, Price price, Quantity volume);
+
     bool orderExists(OrderID id);
 
     void cancelOrder(OrderID id);

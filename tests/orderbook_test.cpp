@@ -983,3 +983,333 @@ TEST(CancelReplaceTest, AskSideUnaffectedWhenBidReplacedToBelowAsk)
     EXPECT_EQ(engine.bestBid().value(), 108);
     EXPECT_EQ(engine.getLogSize(), 0u);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IOC (Immediate-Or-Cancel) Bid Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(IOCBidTest, FullFillDoesNotRest)
+{
+    // IOC bid qty 10 against ask qty 10 — fully fills, never rests
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid()); // fully filled — not resting
+}
+
+TEST(IOCBidTest, PartialFillRemainderCancelled)
+{
+    // IOC bid qty 10 against ask qty 5 — partially fills, remainder silently dropped
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasAsk()); // ask fully consumed
+    EXPECT_FALSE(engine.hasBid()); // unfilled remainder not rested
+}
+
+TEST(IOCBidTest, NoLiquidityCancelledImmediately)
+{
+    // No asks — IOC bid is killed immediately with no trade
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(IOCBidTest, PriceBelowBestAskCancelledWithNoFill)
+{
+    // Ask at 105; IOC bid at 100 — price doesn't cross, order immediately killed
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 105);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_TRUE(engine.hasAsk()); // resting ask untouched
+}
+
+TEST(IOCBidTest, SpansMultipleLevelsFilledCompletely)
+{
+    // IOC bid qty 10 spans two ask levels (5 + 5) — fills all, does not rest
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 102, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(IOCBidTest, SpansMultipleLevelsPartialFillRemainderCancelled)
+{
+    // IOC bid qty 15 can only fill 10 (5+5); remaining 5 dropped
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 15, nextID(), 102, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid()); // 5 unfilled units not rested
+}
+
+TEST(IOCBidTest, DoesNotInterfereWithRestingGTCOrders)
+{
+    // A resting GTC bid should be completely unaffected by a separate IOC bid
+    MatchingEngine engine;
+    OrderID gtcID = nextID();
+    engine.submitLimitOrder(OrderSide::Bid, 10, gtcID, 95); // GTC rests
+    engine.submitLimitOrder(OrderSide::Ask,  5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid,  5, nextID(), 100, LimitType::IOC); // IOC fills
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_TRUE(engine.hasBid()); // GTC order still resting
+    EXPECT_EQ(engine.bestBid().value(), 95);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IOC (Immediate-Or-Cancel) Ask Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(IOCAskTest, FullFillDoesNotRest)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(IOCAskTest, PartialFillRemainderCancelled)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(IOCAskTest, NoLiquidityCancelledImmediately)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(IOCAskTest, PriceAboveBestBidCancelledWithNoFill)
+{
+    // Bid at 95; IOC ask at 100 — doesn't cross, killed immediately
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 95);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_TRUE(engine.hasBid()); // resting bid untouched
+}
+
+TEST(IOCAskTest, SpansMultipleBidLevelsFilledCompletely)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 101); // best bid
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 99, LimitType::IOC);
+
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOK (Fill-Or-Kill) Bid Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(FOKBidTest, ExactVolumeAvailableExecutes)
+{
+    // Ask qty 10 at 100; FOK bid qty 10 at 100 — exact match, executes fully
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, InsufficientVolumeKilledNoTrade)
+{
+    // Ask qty 5 at 100; FOK bid qty 10 — not enough volume, entire order killed
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u); // no partial fills
+    EXPECT_TRUE(engine.hasAsk());       // resting ask untouched
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, NoLiquidityKilledImmediately)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, PriceBelowBestAskKilledNoTrade)
+{
+    // Ask at 105; FOK bid at 100 — price doesn't cross, killed immediately
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 105);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_TRUE(engine.hasAsk());
+    EXPECT_EQ(engine.bestAsk().value(), 105);
+}
+
+TEST(FOKBidTest, SpansMultipleLevelsSufficientVolumeExecutes)
+{
+    // Two ask levels: 5 at 100, 5 at 101. FOK bid qty 10 at 102 — enough total, executes.
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 102, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, SpansMultipleLevelsInsufficientVolumeKilled)
+{
+    // Two ask levels: 5 at 100, 5 at 101. FOK bid qty 15 — only 10 crossable, killed.
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 15, nextID(), 102, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u); // no partial fills — FOK is atomic
+    EXPECT_TRUE(engine.hasAsk());       // resting asks untouched
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, VolumeAvailableButPriceOutOfRangeKilled)
+{
+    // Ask 10 at 100, ask 10 at 110. FOK bid qty 20 at 105 — second level beyond price, killed.
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 110);
+    engine.submitLimitOrder(OrderSide::Bid, 20, nextID(), 105, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_TRUE(engine.hasAsk());
+    EXPECT_FALSE(engine.hasBid());
+}
+
+TEST(FOKBidTest, DoesNotRestAfterKill)
+{
+    // Ensuring a killed FOK order never ends up resting in the book
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100, LimitType::FOK); // no asks
+
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.bestBid().has_value());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOK (Fill-Or-Kill) Ask Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(FOKAskTest, ExactVolumeAvailableExecutes)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 1u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(FOKAskTest, InsufficientVolumeKilledNoTrade)
+{
+    // Bid qty 5 at 100; FOK ask qty 10 — not enough bids, killed
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_TRUE(engine.hasBid()); // resting bid untouched
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(FOKAskTest, NoLiquidityKilledImmediately)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(FOKAskTest, PriceAboveBestBidKilledNoTrade)
+{
+    // Bid at 95; FOK ask at 100 — doesn't cross, killed
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 10, nextID(), 95);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_TRUE(engine.hasBid());
+    EXPECT_EQ(engine.bestBid().value(), 95);
+}
+
+TEST(FOKAskTest, SpansMultipleBidLevelsSufficientVolumeExecutes)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 99, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 2u);
+    EXPECT_FALSE(engine.hasBid());
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(FOKAskTest, SpansMultipleBidLevelsInsufficientVolumeKilled)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 101);
+    engine.submitLimitOrder(OrderSide::Bid, 5, nextID(), 100);
+    engine.submitLimitOrder(OrderSide::Ask, 15, nextID(), 99, LimitType::FOK);
+
+    EXPECT_EQ(engine.getLogSize(), 0u);
+    EXPECT_TRUE(engine.hasBid()); // bids untouched
+    EXPECT_FALSE(engine.hasAsk());
+}
+
+TEST(FOKAskTest, DoesNotRestAfterKill)
+{
+    MatchingEngine engine;
+    engine.submitLimitOrder(OrderSide::Ask, 10, nextID(), 100, LimitType::FOK); // no bids
+
+    EXPECT_FALSE(engine.hasAsk());
+    EXPECT_FALSE(engine.bestAsk().has_value());
+}

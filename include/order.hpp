@@ -18,9 +18,15 @@ enum class OrderSide
 struct OrderIDGenerator
 {
     static OrderID next();
-   
+
 };
 
+enum class LimitType
+{
+    GTC,
+    FOK,
+    IOC,
+};
 class LimitOrder
 {
     private: 
@@ -28,15 +34,20 @@ class LimitOrder
     Quantity m_Quantity{};
     OrderID m_OrderID{};
     Price m_Price{}; 
+    LimitType m_LimitType{};
+
     Timestamp m_Time{Clock::now()};
     public: 
-    LimitOrder(OrderSide side, Quantity quantity, OrderID orderid, Price price)
+    LimitOrder(OrderSide side, Quantity quantity, OrderID orderid, Price price, LimitType type)
     : m_OrderSide{side}
     , m_Quantity{quantity}
     , m_OrderID{orderid}
     , m_Price{price}
+    , m_LimitType{type}
     {}
     Price getPrice() const;
+
+    LimitType getType() const;
 
     Quantity getQuantity() const;
 

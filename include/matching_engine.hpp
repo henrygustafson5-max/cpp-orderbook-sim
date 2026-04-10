@@ -1,4 +1,5 @@
 #pragma once
+#include "order.hpp"
 #include "order_book.hpp"
 #include "trade.hpp"
 
@@ -11,16 +12,15 @@ class MatchingEngine
     TradeLog tradelog;  
     TradeID id {0}; 
 
-    void fillAndRestLimitOrder(std::unique_ptr<LimitOrder> limitOrder);
+    void fillAndRestLimitBid(std::unique_ptr<LimitOrder> limitOrder);
+
+    void fillAndRestLimitAsk(std::unique_ptr<LimitOrder> limitOrder);
 
     void fillMarketOrder(OrderSide marketSide, Quantity marketQty, OrderID marketID); 
-
     
     public:
 
-
-
-    void submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price);
+    void submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price, LimitType type = LimitType::GTC);
 
     void submitMarketOrder( OrderSide side, Quantity quantity, OrderID id);
 
@@ -32,6 +32,7 @@ class MatchingEngine
 
     std::optional<Price> bestAsk() const;
     
+    bool FOKVolumeCheck(OrderSide side, Price price, Quantity volume);
     bool requestModify(OrderID id);
 
     bool cancelOrder(OrderID id);

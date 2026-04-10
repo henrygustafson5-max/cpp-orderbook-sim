@@ -1,14 +1,17 @@
 #include "order.hpp"
 #include <atomic>
 
-
+    
     OrderID OrderIDGenerator::next()
     {
         static std::atomic<OrderID> id{1};
         return id.fetch_add(1, std::memory_order_relaxed);
     }
-
-
+    
+    LimitType LimitOrder::getType() const 
+    {
+        return m_LimitType;
+    }
     Price LimitOrder::getPrice() const
     {
         return m_Price; 

@@ -116,6 +116,29 @@
       return m_lookup[id];
     }
   
+    bool OrderBook::FOKVolumeCheck(OrderSide side, Price price, Quantity volume)
+    {
+        if(side == OrderSide::Bid) {
+         Quantity restingQTY{};
+        for(const auto& pair : m_AskSide) 
+        {
+            if(pair.first > price) return false;
+            restingQTY += pair.second.levelQTY;
+            if(restingQTY >= volume) return true;
+        }
+        return false;
+    }
+        else { 
+         Quantity restingQTY{};
+        for(const auto& pair : m_BidSide) 
+        {
+            if(pair.first < price) return false;
+            restingQTY += pair.second.levelQTY;
+            if(restingQTY >= volume) return true;
+        }
+        return false;
+     }        
+    }
     void OrderBook::cancelOrder(OrderID id)
     {    
        LookUp info = m_lookup[id]; 
