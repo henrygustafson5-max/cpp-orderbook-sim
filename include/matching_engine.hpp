@@ -2,27 +2,31 @@
 #include "order.hpp"
 #include "order_book.hpp"
 #include "trade.hpp"
+#include <unordered_map> 
+#include <string>
 
-
-
-class MatchingEngine
+using SymbolID = size_t; 
+struct MatchingEngine
 {
-    private: 
-    OrderBook book; 
+    std::vector<OrderBook> book; 
     TradeLog tradelog;  
     TradeID id {0}; 
+    std::unordered_map<SymbolID, std::string> symbolLookup; 
+    std::unordered_map<OrderID, SymbolID> idToSymbol;
+  
+    MatchingEngine(size_t numberofsymbols); 
 
-    void fillAndRestLimitBid(std::unique_ptr<LimitOrder> limitOrder);
+    MatchingEngine();
 
-    void fillAndRestLimitAsk(std::unique_ptr<LimitOrder> limitOrder);
+    void fillAndRestLimitBid(SymbolID ticker, std::unique_ptr<LimitOrder> limitOrder);
 
-    void fillMarketOrder(OrderSide marketSide, Quantity marketQty, OrderID marketID); 
+    void fillAndRestLimitAsk(SymbolID ticker, std::unique_ptr<LimitOrder> limitOrder);
+
+    void fillMarketOrder(SymbolID ticker, OrderSide marketSide, Quantity marketQty, OrderID marketID); 
     
-    public:
+    void submitLimitOrder(SymbolID ticker, OrderSide orderSide, Quantity quantity, OrderID orderID, Price price, LimitType type = LimitType::GTC);
 
-    void submitLimitOrder(OrderSide orderSide, Quantity quantity, OrderID orderID, Price price, LimitType type = LimitType::GTC);
-
-    void submitMarketOrder( OrderSide side, Quantity quantity, OrderID id);
+    void submitMarketOrder(SymbolID ticker, OrderSide side, Quantity quantity, OrderID id);
 
     void printTrade(std::size_t index) const;
 
@@ -31,10 +35,11 @@ class MatchingEngine
     std::optional<Price> bestBid() const;
 
     std::optional<Price> bestAsk() const;
-    
-    bool FOKVolumeCheck(OrderSide side, Price price, Quantity volume);
-    bool requestModify(OrderID id);
+       
+    bool FOKVolumeCheck(SymbolID ticker, OrderSide side, Price price, Quantity volume);
 
+    std::optional<SymbolID> requestModify(OrderID id);
+     
     bool cancelOrder(OrderID id);
     
     bool reduceOrder(OrderID id, Quantity newQty);

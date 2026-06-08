@@ -2,11 +2,14 @@
 #include "order.hpp"
 #include <cstdint>
 #include <vector>
+#include <chrono> 
 
 using TradeID = std::uint64_t; 
-
+using Clock = std::chrono::high_resolution_clock;
+using Timestamp = Clock::time_point;
 struct Trade
 {
+    size_t m_symbol{};
     TradeID m_TradeID{};
     Price m_Price{};
     Quantity m_Qty{};
@@ -15,8 +18,9 @@ struct Trade
     OrderSide m_AggressorSide{};
     Timestamp m_Time{};
 
-    Trade(TradeID id, Price price, Quantity quantity, OrderID aggressorOrderID, OrderID restingOrderID, OrderSide aggressorside)
-    : m_TradeID{id}
+    Trade(size_t symbol, TradeID id, Price price, Quantity quantity, OrderID aggressorOrderID, OrderID restingOrderID, OrderSide aggressorside)
+    : m_symbol{symbol}
+    , m_TradeID{id}
     , m_Price{price}
     , m_Qty{quantity}
     , m_AggressorOrderID{aggressorOrderID}

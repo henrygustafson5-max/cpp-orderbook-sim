@@ -26,16 +26,13 @@ struct LookUp
     Quantity qty;
 };
 
-class OrderBook 
+struct OrderBook 
 {
-  
-    private:
+     
     std::map<Price, PriceLevel, std::greater<Price>> m_BidSide;
     std::map<Price, PriceLevel, std::less<Price>> m_AskSide; 
     std::unordered_map<OrderID, LookUp> m_lookup;
-
-    public:
-
+        
     void addBid(std::unique_ptr<LimitOrder> order) ;
 
     void addAsk(std::unique_ptr<LimitOrder> order) ; 

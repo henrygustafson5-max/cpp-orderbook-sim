@@ -5,7 +5,7 @@
 
     
 
-    void OrderBook::addBid(std::unique_ptr<LimitOrder> order)
+    void OrderBook::addBid( std::unique_ptr<LimitOrder> order)
     {
        const Price price = order->getPrice();
        const OrderID id = order->getOrderID();
@@ -14,10 +14,10 @@
        auto& level = levelIT->second; 
        auto orderIT = level.orders.insert(level.orders.end(), std::move(order));
        level.levelQTY += qty;
-       m_lookup[id] =  LookUp{OrderSide::Bid, orderIT, price,qty };
+       m_lookup[id] =  LookUp{ OrderSide::Bid, orderIT, price,qty };
     }
   
-    void OrderBook::addAsk(std::unique_ptr<LimitOrder> order)
+    void OrderBook::addAsk( std::unique_ptr<LimitOrder> order)
     { 
        const Price price = order->getPrice();
        const OrderID id = order->getOrderID();
@@ -26,7 +26,7 @@
        auto& level = levelIT->second; 
        auto orderIT = level.orders.insert(level.orders.end(), std::move(order));
        level.levelQTY += qty;
-       m_lookup[id] =  LookUp{OrderSide::Ask, orderIT, price,qty}; 
+       m_lookup[id] =  LookUp{ OrderSide::Ask, orderIT, price,qty}; 
     }
    
     bool OrderBook::hasAsks() const
@@ -101,7 +101,7 @@
         return ExecutionReport{rPrice, rID, executed};
     }
 
-
+    
     bool OrderBook::orderExists(OrderID id)
     {
         if(m_lookup.contains(id))

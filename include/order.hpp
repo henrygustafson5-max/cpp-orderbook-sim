@@ -1,9 +1,6 @@
 #pragma once 
 #include <cstdint>
-#include <chrono>
 
-using Clock = std::chrono::steady_clock;
-using Timestamp = Clock::time_point; 
 
 using Price = int32_t;
 using Quantity = uint32_t;
@@ -18,7 +15,7 @@ enum class OrderSide
 struct OrderIDGenerator
 {
     static OrderID next();
-
+    static int max;
 };
 
 enum class LimitType
@@ -27,6 +24,9 @@ enum class LimitType
     FOK,
     IOC,
 };
+
+
+
 class LimitOrder
 {
     private: 
@@ -36,7 +36,6 @@ class LimitOrder
     Price m_Price{}; 
     LimitType m_LimitType{};
 
-    Timestamp m_Time{Clock::now()};
     public: 
     LimitOrder(OrderSide side, Quantity quantity, OrderID orderid, Price price, LimitType type)
     : m_OrderSide{side}
