@@ -45,14 +45,6 @@ target_include_directories(orderbook_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_options(orderbook_lib PRIVATE
     -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
 
-# ── Main executable ───────────────────────────────────────────
-add_executable(orderbook_sim
-    src/main.cpp
-)
-target_link_libraries(orderbook_sim PRIVATE orderbook_lib)
-target_compile_options(orderbook_sim PRIVATE
-    -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
-
 # ── Benchmarks ────────────────────────────────────────────────
 add_executable(orderbook_bench
     src/benchmark.cpp

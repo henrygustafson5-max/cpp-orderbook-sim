@@ -1,6 +1,5 @@
 #pragma once 
-#include <cstdint>
-
+#include <cstdint> 
 
 using Price = int32_t;
 using Quantity = uint32_t;
@@ -25,8 +24,6 @@ enum class LimitType
     IOC,
 };
 
-
-
 class LimitOrder
 {
     private: 
@@ -44,6 +41,7 @@ class LimitOrder
     , m_Price{price}
     , m_LimitType{type}
     {}
+
     Price getPrice() const;
 
     LimitType getType() const;
@@ -53,10 +51,8 @@ class LimitOrder
     OrderSide getOrderSide() const;
 
     OrderID getOrderID() const;
+
     void updateQuantity(Quantity filledQuantity);
 
     void setQuantity(Quantity newQuantity);
-
-    
-
 };

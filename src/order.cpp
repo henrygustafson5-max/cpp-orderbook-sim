@@ -1,7 +1,8 @@
 #include "order.hpp"
 #include <atomic>
 
-    
+    int OrderIDGenerator::max {1};
+
     OrderID OrderIDGenerator::next()
     {
         static std::atomic<OrderID> id{1};

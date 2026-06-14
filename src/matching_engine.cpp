@@ -2,11 +2,11 @@
 #include "order.hpp"
   
     MatchingEngine::MatchingEngine(size_t numberofsymbols)
-    {book.reserve(numberofsymbols);}
-    
+    {book.resize(numberofsymbols);}
+
     MatchingEngine::MatchingEngine()
     {
-    book.reserve(1);
+    book.resize(1);
     }
     void MatchingEngine::submitLimitOrder(SymbolID ticker, OrderSide orderSide, Quantity quantity, OrderID orderID, Price price, LimitType type )
     {
@@ -126,7 +126,9 @@
 
     std::optional<SymbolID> MatchingEngine::requestModify(OrderID id)
     {
-      auto ticker{idToSymbol[id]};
+      auto it = idToSymbol.find(id);
+      if(it == idToSymbol.end()) return std::nullopt;
+      auto ticker {it->second};
       if(book[ticker].orderExists(id)) return ticker;
       return std::nullopt;
     }
@@ -172,6 +174,26 @@
     std::size_t MatchingEngine::getLogSize() const
     {
         return tradelog.getTradeLogSize();
+    }
+
+    std::optional<Price> MatchingEngine::bestBid(SymbolID ticker) const
+    {
+        return book[ticker].bestBid();
+    }
+
+    std::optional<Price> MatchingEngine::bestAsk(SymbolID ticker) const
+    {
+        return book[ticker].bestAsk();
+    }
+
+    bool MatchingEngine::hasBid(SymbolID ticker) const
+    {
+        return book[ticker].hasBids();
+    }
+
+    bool MatchingEngine::hasAsk(SymbolID ticker) const
+    {
+        return book[ticker].hasAsks();
     }
 
 

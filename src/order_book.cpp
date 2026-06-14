@@ -4,7 +4,7 @@
 
 
     
-
+  
     void OrderBook::addBid( std::unique_ptr<LimitOrder> order)
     {
        const Price price = order->getPrice();
@@ -33,12 +33,12 @@
     {
         return !m_AskSide.empty();
     }
-
+    
     bool OrderBook::hasBids() const
     {
        return !m_BidSide.empty(); 
     }
-
+    
     std::optional<Price> OrderBook::bestBid() const
     {
         if (m_BidSide.empty()) return std::nullopt;
@@ -52,7 +52,7 @@
         if (m_AskSide.begin()->second.orders.empty()) return std::nullopt;
         return m_AskSide.begin()->first;
     }
-
+   
     std::optional<ExecutionReport> OrderBook::consumeBestAsk(Quantity quantity)
     {   
         if (m_AskSide.empty()) return std::nullopt;
@@ -150,15 +150,16 @@
         auto mapIt = m_BidSide.find(price);
         mapIt->second.levelQTY -= removingQty;
         mapIt->second.orders.erase(info.orderIT);
-        if(mapIt->second.levelQTY == 0 ) m_BidSide.erase(price); 
+        if(mapIt->second.levelQTY == 0 ) m_BidSide.erase(price);
        }
-      else 
-      {   
+      else
+      {
         auto mapIt = m_AskSide.find(price);
         mapIt->second.levelQTY -= removingQty;
         mapIt->second.orders.erase(info.orderIT);
-        if(mapIt->second.levelQTY == 0 ) m_AskSide.erase(price); 
+        if(mapIt->second.levelQTY == 0 ) m_AskSide.erase(price);
       }
+      m_lookup.erase(id);
     }
      
     void OrderBook::reduceQuantity(OrderID id, Quantity newQTY)

@@ -32,9 +32,9 @@ struct MatchingEngine
 
     std::size_t getLogSize() const ;
 
-    std::optional<Price> bestBid() const;
+    std::optional<Price> bestBid(SymbolID ticker) const;
 
-    std::optional<Price> bestAsk() const;
+    std::optional<Price> bestAsk(SymbolID ticker) const;
        
     bool FOKVolumeCheck(SymbolID ticker, OrderSide side, Price price, Quantity volume);
 
@@ -46,9 +46,9 @@ struct MatchingEngine
 
     bool cancelReplace(OrderID id, Quantity newQTY, Price newPrice);    
 
-    bool hasAsk() const;
+    bool hasAsk(SymbolID ticker) const;
 
-    bool hasBid() const;
+    bool hasBid(SymbolID ticker) const;
 };
 
 
